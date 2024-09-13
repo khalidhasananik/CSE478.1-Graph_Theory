@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Step 1: Compile the Code
+echo "Compiling the code..."
+cd /home/anik/EBBkC/src/build
+make clean  # Clean previous builds
+make        # Compile the code
+
+if [ $? -ne 0 ]; then
+    echo "Compilation failed. Exiting."
+    exit 1
+fi
+
+echo "Compilation successful."
+
+# Step 2: Pre-processing (Optional)
+echo "Running pre-processing..."
+./BBkC p /home/anik/EBBkC/dataset/facebook/facebook.edges
+./BBkC p /home/anik/EBBkC/dataset/nasasrb/nasasrb.edges
+
+# Step 3: Run Serial Listing Procedure for Facebook
+echo "Running serial listing for Facebook dataset..."
+./BBkC e /home/anik/EBBkC/dataset/facebook/facebook.clean 20 3
+
+# Step 4: Run Serial Listing Procedure for Nasasrb
+echo "Running serial listing for Nasasrb dataset..."
+./BBkC e /home/anik/EBBkC/dataset/nasasrb/nasasrb.clean 12 2
+
+echo "All tasks completed."
+
+chmod +x run_clique.sh
+
