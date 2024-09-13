@@ -14,9 +14,9 @@ fi
 echo "Compilation successful."
 
 # Step 2: Pre-processing (Optional)
-echo "Running pre-processing..."
-./BBkC p /home/anik/EBBkC/dataset/facebook/facebook.edges
-./BBkC p /home/anik/EBBkC/dataset/nasasrb/nasasrb.edges
+# echo "Running pre-processing..."
+# ./BBkC p /home/anik/EBBkC/dataset/facebook/facebook.edges
+# ./BBkC p /home/anik/EBBkC/dataset/nasasrb/nasasrb.edges
 
 # Step 3: Run Serial Listing Procedure for Facebook
 echo "Running serial listing for Facebook dataset..."
