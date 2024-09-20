@@ -9,7 +9,7 @@ make        # Compile the code
 if [ $? -ne 0 ]; then
     echo "Compilation failed. Exiting."
     exit 1
-fi
+fi 
 
 echo "Compilation successful."
 
@@ -17,6 +17,7 @@ echo "Compilation successful."
 # echo "Running pre-processing..."
 # ./BBkC p /home/anik/EBBkC/dataset/facebook/facebook.edges
 # ./BBkC p /home/anik/EBBkC/dataset/nasasrb/nasasrb.edges
+
 
 # Step 3: Run Serial Listing Procedure for Facebook
 echo "Running serial listing for Facebook dataset..."

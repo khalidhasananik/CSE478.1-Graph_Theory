@@ -99,7 +99,7 @@ unsigned long long N = 0;
 int main(int argc, char **argv)
 {
     double runtime, total_runtime = 0; // To store total runtime
-    int runs = 5;                      // Set the number of runs
+    int runs = 2;                      // Set the number of runs
     string act(argv[1]);
 
     if (act == "p")
@@ -122,32 +122,39 @@ int main(int argc, char **argv)
 
             auto start = high_resolution_clock::now(); // Start timing
 
-            if (act == "e")
-            { // EBBkC+ET
-                string src_filename(argv[2]);
-                K = atoi(argv[3]);
-                L = atoi(argv[4]);
-                runtime = EBBkC_t::list_k_clique(argv[2]);
-                printf("Number of %u-cliques: %llu\n", K, N);
-                printf("EBBkC+ET (t = %d) runtime %.2lf ms\n\n", L, runtime);
-            }
+            string src_filename(argv[2]);
+            K = atoi(argv[3]); // atoi means "ASCII to Integer"
+            L = atoi(argv[4]);
+            runtime = EBBkC_t::list_k_clique(argv[2]);
+            printf("Number of %u-cliques: %llu\n", K, N);
+            printf("EBBkC+ET (t = %d) runtime %.2lf ms\n\n", L, runtime);
 
-            else if (act == "ep")
-            { // EBBkC+ET (parallel)
-                string src_filename(argv[2]);
-                K = atoi(argv[3]);
-                L = atoi(argv[4]);
-                omp_set_num_threads(atoi(argv[5]));
-                runtime = EBBkC_t::list_k_clique_parallel(argv[2]);
-                printf("Number of %u-cliques: %llu\n", K, N);
-                printf("EBBkC+ET (t = %d) runtime %.2lf ms\n\n", L, runtime);
-            }
+            // if (act == "e")
+            // { // EBBkC+ET
+            //     string src_filename(argv[2]);
+            //     K = atoi(argv[3]);
+            //     L = atoi(argv[4]);
+            //     runtime = EBBkC_t::list_k_clique(argv[2]);
+            //     printf("Number of %u-cliques: %llu\n", K, N);
+            //     printf("EBBkC+ET (t = %d) runtime %.2lf ms\n\n", L, runtime);
+            // }
 
-            else
-            {
-                printf("Wrong usage.\n");
-                exit(0);
-            }
+            // else if (act == "ep")
+            // { // EBBkC+ET (parallel)
+            //     string src_filename(argv[2]);
+            //     K = atoi(argv[3]);
+            //     L = atoi(argv[4]);
+            //     omp_set_num_threads(atoi(argv[5]));
+            //     runtime = EBBkC_t::list_k_clique_parallel(argv[2]);
+            //     printf("Number of %u-cliques: %llu\n", K, N);
+            //     printf("EBBkC+ET (t = %d) runtime %.2lf ms\n\n", L, runtime);
+            // }
+
+            // else
+            // {
+            //     printf("Wrong usage.\n");
+            //     exit(0);
+            // }
 
             auto end = high_resolution_clock::now();               // End timing
             duration<double, std::milli> run_time = end - start;   // Calculate runtime in ms

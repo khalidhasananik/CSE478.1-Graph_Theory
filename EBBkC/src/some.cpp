@@ -1048,3 +1048,205 @@ double EBBkC_t::list_k_clique_parallel(const char *file_name)
 
 //     return;
 // }
+
+// void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
+// {
+//     int c, i, j, k, p, e_, u, v, w, s, t, end, dist, l = K;
+//     int *old2new = new int[v_size];
+
+//     g->v_size = 0;
+//     g->e_size = 0;
+//     g->edges = new Edge_t[C_size[e] + 1];
+//     g->new2old = vector<int>(T_size[e]);
+
+//     // Initialize the new graph with vertices and edges
+//     for (i = 0; i < T_size[e]; i++)
+//     {
+//         u = T[e][i];
+//         old2new[u] = g->v_size;
+//         g->new2old[g->v_size++] = u;
+//     }
+
+//     for (i = 0; i < C_size[e]; i++)
+//     {
+//         e_ = C[e][i];
+//         s = edges[e_].s;
+//         t = edges[e_].t;
+//         g->edges[g->e_size].s = old2new[s];
+//         g->edges[g->e_size++].t = old2new[t];
+//     }
+
+//     delete[] old2new;
+
+//     // Handle the base case for small k
+//     if (l == 3 || l == 4)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     if (g->v_size < l - 2 || g->e_size < (l - 2) * (l - 3) / 2)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     // Initialize for coloring
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->col[j] = 0;            // Reset all colors
+//         g->DAG_deg[l - 2][j] = 0; // Reset DAG degree
+//         g->G_deg[l - 2][j] = 0;   // Reset general degree
+//     }
+
+//     // Build adjacency list
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->G_adj[s][g->G_deg[l - 2][s]++] = t;
+//         g->G_adj[t][g->G_deg[l - 2][t]++] = s;
+//     }
+
+//     // Uncomment the following line to switch to DSATUR (default is greedy algorithm)
+//     bool use_dsatur = true; // Set to true to use DSATUR, false for the greedy algorithm
+
+//     if (!use_dsatur)
+//     {
+//         // Original greedy coloring algorithm
+//         auto *list = new KeyVal_t[truss_num + 1];
+//         for (j = 0; j < g->v_size; j++)
+//         {
+//             list[j].key = j;
+//             list[j].val = g->G_deg[l - 2][j]; // Sort vertices by degree
+//         }
+//         sort(list, list + g->v_size);
+
+//         for (j = 0; j < g->v_size; j++)
+//         {
+//             u = list[j].key;
+//             for (k = 0; k < g->G_deg[l - 2][u]; k++)
+//             {
+//                 v = g->G_adj[u][k];
+//                 g->used[l - 2][g->col[v]] = true;
+//             }
+//             for (c = 1; g->used[l - 2][c]; c++)
+//                 ;
+//             g->col[u] = c;
+//             for (k = 0; k < g->G_deg[l - 2][u]; k++)
+//             {
+//                 v = g->G_adj[u][k];
+//                 g->used[l - 2][g->col[v]] = false;
+//             }
+//         }
+//         delete[] list;
+//     }
+//     else
+//     {
+//         // DSATUR coloring algorithm
+
+//         // Data structures to track saturation degree and degree
+//         vector<int> saturation(g->v_size, 0); // Saturation degree
+//         vector<int> degree(g->v_size, 0);     // Original degree
+//         vector<int> color(g->v_size, -1);     // Colors assigned to vertices
+
+//         // Compute degrees
+//         for (int v = 0; v < g->v_size; v++)
+//         {
+//             degree[v] = g->G_deg[l - 2][v]; // Degree of vertex
+//         }
+
+//         // Start by coloring the vertex with the highest degree
+//         int first_vertex = max_element(degree.begin(), degree.end()) - degree.begin();
+//         color[first_vertex] = 1; // Assign the first color to this vertex
+
+//         // Update saturation degree of its neighbors
+//         for (int k = 0; k < g->G_deg[l - 2][first_vertex]; k++)
+//         {
+//             int neighbor = g->G_adj[first_vertex][k];
+//             saturation[neighbor] += 1;
+//         }
+
+//         // Color the rest of the vertices
+//         for (int colored_vertices = 1; colored_vertices < g->v_size; colored_vertices++)
+//         {
+//             // Select vertex with highest saturation degree, if tie, choose the one with the highest uncolored degree
+//             int selected_vertex = -1;
+//             int max_saturation = -1;
+//             int max_degree = -1;
+
+//             for (int v = 0; v < g->v_size; v++)
+//             {
+//                 if (color[v] == -1)
+//                 { // Only consider uncolored vertices
+//                     if (saturation[v] > max_saturation ||
+//                         (saturation[v] == max_saturation && degree[v] > max_degree))
+//                     {
+//                         max_saturation = saturation[v];
+//                         max_degree = degree[v];
+//                         selected_vertex = v;
+//                     }
+//                 }
+//             }
+
+//             // Assign the smallest available color to selected_vertex
+//             set<int> used_colors;
+//             for (int k = 0; k < g->G_deg[l - 2][selected_vertex]; k++)
+//             {
+//                 int neighbor = g->G_adj[selected_vertex][k];
+//                 if (color[neighbor] != -1)
+//                 {
+//                     used_colors.insert(color[neighbor]);
+//                 }
+//             }
+
+//             int new_color = 1;
+//             while (used_colors.find(new_color) != used_colors.end())
+//             {
+//                 new_color++;
+//             }
+//             color[selected_vertex] = new_color;
+
+//             // Update saturation degree of its neighbors
+//             for (int k = 0; k < g->G_deg[l - 2][selected_vertex]; k++)
+//             {
+//                 int neighbor = g->G_adj[selected_vertex][k];
+//                 if (color[neighbor] == -1)
+//                 {
+//                     saturation[neighbor] += 1; // Increase saturation degree for uncolored neighbors
+//                 }
+//             }
+//         }
+
+//         // Transfer the DSATUR color assignments to the original col array
+//         for (int v = 0; v < g->v_size; v++)
+//         {
+//             g->col[v] = color[v];
+//         }
+//     }
+
+//     // Prepare the subgraph for further processing
+//     g->sub_v_size[l - 2] = 0;
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->sub_v[l - 2][g->sub_v_size[l - 2]++] = j;
+//     }
+
+//     g->sub_e_size[l - 2] = 0;
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         g->sub_e[l - 2][g->sub_e_size[l - 2]++] = j;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->edges[j].s = (g->col[s] > g->col[t]) ? s : t;
+//         g->edges[j].t = (g->col[s] > g->col[t]) ? t : s;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+
+//         g->DAG_adj[s][g->DAG_deg[l - 2][s]++] = t;
+//     }
+
+//     return;
+// }

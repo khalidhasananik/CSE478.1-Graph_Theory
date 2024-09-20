@@ -931,28 +931,148 @@ void EBBkC_Graph_t::build(bool sub)
 
 // previous version
 
+// void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
+// {
+//     int c, i, j, k, p, e_, u, v, w, s, t, end, dist, l = K;
+//     int *old2new = new int[v_size]; // Array to map old vertex indices to new ones
+
+//     // Initialize the new graph
+//     g->v_size = 0;
+//     g->e_size = 0;
+//     g->edges = new Edge_t[C_size[e] + 1]; // Allocate memory for edges
+//     g->new2old = vector<int>(T_size[e]);  // Vector to map new vertex indices to old ones
+
+//     // Map old vertices to new vertices
+//     for (i = 0; i < T_size[e]; i++)
+//     {
+//         u = T[e][i];
+//         old2new[u] = g->v_size;
+//         g->new2old[g->v_size++] = u;
+//     }
+
+//     // Map old edges to new edges
+//     for (i = 0; i < C_size[e]; i++)
+//     {
+//         e_ = C[e][i];
+//         s = edges[e_].s;
+//         t = edges[e_].t;
+//         g->edges[g->e_size].s = old2new[s];
+//         g->edges[g->e_size++].t = old2new[t];
+//     }
+
+//     delete[] old2new; // Clean up the old2new array
+
+//     // Handle special cases for l == 3 or l == 4
+//     if (l == 3 || l == 4)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     // Check if the graph is too small to process further
+//     if (g->v_size < l - 2 || g->e_size < (l - 2) * (l - 3) / 2)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     // Initialize vertex colors and degrees
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->col[j] = 0;
+//         g->DAG_deg[l - 2][j] = 0;
+//         g->G_deg[l - 2][j] = 0;
+//     }
+
+//     // Build adjacency lists for the graph
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->G_adj[s][g->G_deg[l - 2][s]++] = t;
+//         g->G_adj[t][g->G_deg[l - 2][t]++] = s;
+//     }
+
+//     // Create a list of vertices sorted by degree
+//     auto *list = new KeyVal_t[truss_num + 1];
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         list[j].key = j;
+//         list[j].val = g->G_deg[l - 2][j];
+//     }
+//     sort(list, list + g->v_size);
+
+//     // Assign colors to vertices
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         u = list[j].key;
+//         for (k = 0; k < g->G_deg[l - 2][u]; k++)
+//         {
+//             v = g->G_adj[u][k];
+//             g->used[l - 2][g->col[v]] = true;
+//         }
+//         for (c = 1; g->used[l - 2][c]; c++)
+//             ;
+//         g->col[u] = c;
+//         for (k = 0; k < g->G_deg[l - 2][u]; k++)
+//         {
+//             v = g->G_adj[u][k];
+//             g->used[l - 2][g->col[v]] = false;
+//         }
+//     }
+//     delete[] list; // Clean up the list
+
+//     g->sub_v_size[l - 2] = 0;
+
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->sub_v[l - 2][g->sub_v_size[l - 2]++] = j;
+//     }
+
+//     g->sub_e_size[l - 2] = 0;
+
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         g->sub_e[l - 2][g->sub_e_size[l - 2]++] = j;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->edges[j].s = (g->col[s] > g->col[t]) ? s : t;
+//         g->edges[j].t = (g->col[s] > g->col[t]) ? t : s;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+
+//         g->DAG_adj[s][g->DAG_deg[l - 2][s]++] = t;
+//     }
+
+//     return;
+// }
+
+// new version with DSATUR coloring algorithm
+
 void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
 {
     int c, i, j, k, p, e_, u, v, w, s, t, end, dist, l = K;
-    int *old2new = new int[v_size]; // Array to map old vertex indices to new ones
+    int *old2new = new int[v_size];
 
-    // Initialize the new graph
-    g->v_size = 0;
-    g->e_size = 0;
+    g->v_size = 0;                        // v_size is the number of vertices in the graph
+    g->e_size = 0;                        // e_size is the number of edges in the graph
     g->edges = new Edge_t[C_size[e] + 1]; // Allocate memory for edges
-    g->new2old = vector<int>(T_size[e]);  // Vector to map new vertex indices to old ones
+    g->new2old = vector<int>(T_size[e]);
 
-    // Map old vertices to new vertices
-    for (i = 0; i < T_size[e]; i++)
+    // Initialize the new graph with vertices and edges
+    for (i = 0; i < T_size[e]; i++) // T_size is the number of vertices in the truss decomposition
     {
+        // here we are mapping the old vertices to new vertices in the new graph g
         u = T[e][i];
         old2new[u] = g->v_size;
         g->new2old[g->v_size++] = u;
     }
 
-    // Map old edges to new edges
-    for (i = 0; i < C_size[e]; i++)
+    for (i = 0; i < C_size[e]; i++) // C_size is the number of edges in the truss decomposition
     {
+        // here we are mapping the old edges to new edges in the new graph g
         e_ = C[e][i];
         s = edges[e_].s;
         t = edges[e_].t;
@@ -962,7 +1082,7 @@ void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
 
     delete[] old2new; // Clean up the old2new array
 
-    // Handle special cases for l == 3 or l == 4
+    // Handle the base case for small k
     if (l == 3 || l == 4)
     {
         g->sub_v_size[l - 2] = g->v_size;
@@ -970,7 +1090,6 @@ void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
         return;
     }
 
-    // Check if the graph is too small to process further
     if (g->v_size < l - 2 || g->e_size < (l - 2) * (l - 3) / 2)
     {
         g->sub_v_size[l - 2] = g->v_size;
@@ -978,15 +1097,15 @@ void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
         return;
     }
 
-    // Initialize vertex colors and degrees
+    // Initialize for coloring
     for (j = 0; j < g->v_size; j++)
     {
-        g->col[j] = 0;
-        g->DAG_deg[l - 2][j] = 0;
-        g->G_deg[l - 2][j] = 0;
+        g->col[j] = 0;            // Reset all colors
+        g->DAG_deg[l - 2][j] = 0; // Reset DAG degree
+        g->G_deg[l - 2][j] = 0;   // Reset general degree
     }
 
-    // Build adjacency lists for the graph
+    // Build adjacency list
     for (j = 0; j < g->e_size; j++)
     {
         s = g->edges[j].s;
@@ -995,44 +1114,102 @@ void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
         g->G_adj[t][g->G_deg[l - 2][t]++] = s;
     }
 
-    // Create a list of vertices sorted by degree
-    auto *list = new KeyVal_t[truss_num + 1];
-    for (j = 0; j < g->v_size; j++)
-    {
-        list[j].key = j;
-        list[j].val = g->G_deg[l - 2][j];
-    }
-    sort(list, list + g->v_size);
+    // DSATUR coloring algorithm
 
-    // Assign colors to vertices
-    for (j = 0; j < g->v_size; j++)
+    // Data structures to track saturation degree and degree
+    vector<int> saturation(g->v_size, 0); // Saturation degree
+    vector<int> degree(g->v_size, 0);     // Original degree
+    vector<int> color(g->v_size, -1);     // Colors assigned to vertices
+
+    // Compute degrees
+    for (int v = 0; v < g->v_size; v++)
     {
-        u = list[j].key;
-        for (k = 0; k < g->G_deg[l - 2][u]; k++)
+        // G_deg[l - 2][v] is the degree of the vertex v in the graph g
+        degree[v] = g->G_deg[l - 2][v]; //
+    }
+
+    // Start by coloring the vertex with the highest degree
+    int first_vertex = max_element(degree.begin(), degree.end()) - degree.begin();
+
+    color[first_vertex] = 1; // Assign the first color to this vertex
+
+    // Update saturation degree of its neighbors
+    for (int k = 0; k < g->G_deg[l - 2][first_vertex]; k++)
+    {
+        int neighbor = g->G_adj[first_vertex][k];
+        saturation[neighbor] += 1;
+    }
+
+    // Color the rest of the vertices
+    for (int colored_vertices = 1; colored_vertices < g->v_size; colored_vertices++)
+    {
+        // Select vertex with highest saturation degree, if tie, choose the one with the highest uncolored degree
+        int selected_vertex = -1;
+        int max_saturation = -1;
+        int max_degree = -1;
+
+        for (int v = 0; v < g->v_size; v++)
         {
-            v = g->G_adj[u][k];
-            g->used[l - 2][g->col[v]] = true;
+            if (color[v] == -1)
+            { // Only consider uncolored vertices
+                if (saturation[v] > max_saturation || (saturation[v] == max_saturation && degree[v] > max_degree))
+                {
+                    max_saturation = saturation[v];
+                    max_degree = degree[v];
+                    selected_vertex = v;
+                }
+            }
         }
-        for (c = 1; g->used[l - 2][c]; c++)
-            ;
-        g->col[u] = c;
-        for (k = 0; k < g->G_deg[l - 2][u]; k++)
+
+        // Assign the smallest available color to selected_vertex
+        set<int> used_colors;
+
+        for (int k = 0; k < g->G_deg[l - 2][selected_vertex]; k++)
         {
-            v = g->G_adj[u][k];
-            g->used[l - 2][g->col[v]] = false;
+            int neighbor = g->G_adj[selected_vertex][k];
+
+            if (color[neighbor] != -1)
+            {
+                used_colors.insert(color[neighbor]);
+            }
+        }
+
+        int new_color = 1;
+
+        while (used_colors.find(new_color) != used_colors.end())
+        {
+            new_color++;
+        }
+
+        color[selected_vertex] = new_color;
+
+        // Update saturation degree of its neighbors
+        for (int k = 0; k < g->G_deg[l - 2][selected_vertex]; k++)
+        {
+            int neighbor = g->G_adj[selected_vertex][k];
+
+            if (color[neighbor] == -1)
+            {
+                saturation[neighbor] += 1; // Increase saturation degree for uncolored neighbors
+            }
         }
     }
-    delete[] list; // Clean up the list
 
+    // Transfer the DSATUR color assignments to the original col array
+    // why? because the rest of the code uses the col array to determine the color of a vertex
+    for (int v = 0; v < g->v_size; v++)
+    {
+        g->col[v] = color[v];
+    }
+
+    // Prepare the subgraph for further processing
     g->sub_v_size[l - 2] = 0;
-
     for (j = 0; j < g->v_size; j++)
     {
         g->sub_v[l - 2][g->sub_v_size[l - 2]++] = j;
     }
 
     g->sub_e_size[l - 2] = 0;
-
     for (j = 0; j < g->e_size; j++)
     {
         g->sub_e[l - 2][g->sub_e_size[l - 2]++] = j;
@@ -1045,79 +1222,6 @@ void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
 
         g->DAG_adj[s][g->DAG_deg[l - 2][s]++] = t;
     }
-
-    return;
-}
-
-// new version with DSATUR coloring algorithm
-
-void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
-{
-    int c, i, j, k, p, e_, u, v, w, s, t, end, dist, l = K;
-    int *old2new = new int[v_size];
-
-    g->v_size = 0;
-    g->e_size = 0;
-    g->edges = new Edge_t[C_size[e] + 1];
-    g->new2old = vector<int>(T_size[e]);
-
-    // Initialize new graph with vertices and edges
-    for (i = 0; i < T_size[e]; i++)
-    {
-        u = T[e][i];
-        old2new[u] = g->v_size;
-        g->new2old[g->v_size++] = u;
-    }
-
-    for (i = 0; i < C_size[e]; i++)
-    {
-        e_ = C[e][i];
-        s = edges[e_].s;
-        t = edges[e_].t;
-        g->edges[g->e_size].s = old2new[s];
-        g->edges[g->e_size++].t = old2new[t];
-    }
-
-    delete[] old2new;
-
-    // Handle small graph cases
-    if (l == 3 || l == 4)
-    {
-        g->sub_v_size[l - 2] = g->v_size;
-        g->sub_e_size[l - 2] = g->e_size;
-        return;
-    }
-
-    if (g->v_size < l - 2 || g->e_size < (l - 2) * (l - 3) / 2)
-    {
-        g->sub_v_size[l - 2] = g->v_size;
-        g->sub_e_size[l - 2] = g->e_size;
-        return;
-    }
-
-    // DSATUR algorithm
-
-    // Initialization of the color and saturation degree arrays
-    vector<int> saturation(g->v_size, 0); // Saturation degree for each vertex
-    vector<int> color(g->v_size, -1);     // Colors assigned to vertices (-1 means uncolored)
-    vector<int> degree(g->v_size, 0);     // Degree of each vertex (number of edges connected)
-
-    // Calculate degrees for all vertices
-    // code....
-
-    // Select the vertex with the highest degree to color first
-    int first_vertex = max_element(degree.begin(), degree.end()) - degree.begin();
-    color[first_vertex] = 1; // Assign the first color (color 1) to this vertex
-
-    // Update saturation degree for neighbors of the first colored vertex
-    // code....
-
-    int max_saturation = -1;
-    // loop
-
-    // find the vertex with the highest saturation degree
-
-    // color the remaining vertices
 
     return;
 }
