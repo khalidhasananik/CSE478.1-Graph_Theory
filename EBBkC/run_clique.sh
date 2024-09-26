@@ -36,3 +36,7 @@ echo "All tasks completed."
 # cd /home/anik/CSE478.1-Graph_Theory/EBBkC/Cohesive_subgraph_book/datasets
 # ./edgelist2binary /home/anik/CSE478.1-Graph_Theory/EBBkC/dataset/facebook facebook.clean
 # ./edgelist2binary /home/anik/CSE478.1-Graph_Theory/EBBkC/dataset/nasasrb nasasrb.clean
+
+
+# chmod +x run_clique.sh
+# ./run_clique.sh
