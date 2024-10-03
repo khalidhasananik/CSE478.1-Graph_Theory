@@ -1,16 +1,12 @@
 #include <bits/stdc++.h>
 
 using namespace std;
+using namespace std::chrono;
 
 int ***graph;
 int *colors;
 int n;
 int finish = 0;
-priority_queue<pair<int, int>> degree;
-
-// graph[][0][0] == saturation
-// graph[][1][0] == color
-// graph[][2][0] == degree
 
 int max_sat()
 {
@@ -70,6 +66,12 @@ void color(int v)
 
 int main()
 {
+    auto start = high_resolution_clock::now();
+#ifndef BZMYSR
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif // BZMYSR
+
     cin >> n;
     graph = new int **[n];
     colors = new int[n];
@@ -91,9 +93,8 @@ int main()
         graph[i][2][0] = d;
 
         graph[i][3] = new int[d]; // neighbors
-        graph[i][4] = new int[n]; // unavailable colors
+        graph[i][4] = new int[n]; // available colors
 
-        // degree.push({d, i});
         if (d > maxDeg)
         {
             maxDeg = d;
@@ -115,7 +116,7 @@ int main()
 
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
-            graph[i][4][j] = -1;
+            graph[i][4][j] = -1; //-1 will mean that color is available
 
     color(maxVer);
 
@@ -135,16 +136,6 @@ int main()
     //     cout << endl;
     // }
 
-    // priority queue test output
-    // cout << endl;
-    // for (int i = 0; i < n; i++)
-    // {
-    //     int x = degree.top().first;
-    //     int y = degree.top().second;
-    //     degree.pop();
-    //     cout << x << ' ' << y << endl;
-    // }
-
     for (int i = 0; i < n; ++i)
     {
         for (int j = 0; j < 4; ++j)
@@ -154,6 +145,10 @@ int main()
         delete[] graph[i];
     }
     delete[] graph;
+
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(end - start);
+    cout << "Time taken: " << duration.count() << " microseconds" << endl;
 
     return 0;
 }
@@ -190,3 +185,20 @@ int main()
 // 5 13
 // 6 12
 // 7
+
+// OUTPUT
+// Vertex 0 Color 1
+// Vertex 1 Color 0
+// Vertex 2 Color 0
+// Vertex 3 Color 0
+// Vertex 4 Color 2
+// Vertex 5 Color 1
+// Vertex 6 Color 1
+// Vertex 7 Color 2
+// Vertex 8 Color 1
+// Vertex 9 Color 1
+// Vertex 10 Color 0
+// Vertex 11 Color 2
+// Vertex 12 Color 0
+// Vertex 13 Color 2
+// Vertex 14 Color 0
