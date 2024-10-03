@@ -5,6 +5,10 @@
 #include <cassert>
 #include <chrono>
 
+#include <queue>
+#include <vector>
+#include <climits>
+
 #include "set_operation.h"
 #include "edge_oriented.h"
 #include "truss/util/graph/graph.h"
@@ -13,6 +17,20 @@
 #include "truss/decompose/parallel_all_edge_cnc.h"
 #include "truss/util/reordering/reorder_utils.h"
 #include "truss/decompose/iter_helper.h"
+
+// struct Vertex
+// {
+//     int id;
+//     int saturation;
+//     int degree;
+
+//     bool operator<(const Vertex &other) const
+//     {
+//         if (saturation == other.saturation)
+//             return degree < other.degree;
+//         return saturation < other.saturation;
+//     }
+// };
 
 extern const int K, L; // K-clique, L-iteration
 extern unsigned long long N;
@@ -1436,6 +1454,821 @@ void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
 
     return;
 }
+
+// new version of DSATUR with priority queue based implementation
+
+// void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
+// {
+//     int c, i, j, k, p, e_, u, v, w, s, t, end, dist, l = K;
+//     int *old2new = new int[v_size];
+
+//     g->v_size = 0;
+//     g->e_size = 0;
+//     g->edges = new Edge_t[C_size[e] + 1];
+//     g->new2old.resize(T_size[e]);
+
+//     for (i = 0; i < T_size[e]; i++)
+//     {
+//         u = T[e][i];
+//         old2new[u] = g->v_size;
+//         g->new2old[g->v_size++] = u;
+//     }
+
+//     for (i = 0; i < C_size[e]; i++)
+//     {
+//         e_ = C[e][i];
+//         s = edges[e_].s;
+//         t = edges[e_].t;
+//         g->edges[g->e_size].s = old2new[s];
+//         g->edges[g->e_size++].t = old2new[t];
+//     }
+
+//     delete[] old2new;
+
+//     if (l == 3 || l == 4)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     if (g->v_size < l - 2 || g->e_size < (l - 2) * (l - 3) / 2)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->col[j] = 0;
+//         g->DAG_deg[l - 2][j] = 0;
+//         g->G_deg[l - 2][j] = 0;
+//     }
+
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->G_adj[s][g->G_deg[l - 2][s]++] = t;
+//         g->G_adj[t][g->G_deg[l - 2][t]++] = s;
+//     }
+
+//     std::vector<int> saturation(g->v_size, 0);
+//     std::vector<int> degree(g->v_size, 0);
+//     std::vector<int> color(g->v_size, -1);
+
+//     for (int v = 0; v < g->v_size; v++)
+//         degree[v] = g->G_deg[l - 2][v];
+
+//     std::priority_queue<Vertex> pq;
+//     for (int v = 0; v < g->v_size; v++)
+//         pq.push({v, saturation[v], degree[v]});
+
+//     int first_vertex = pq.top().id;
+//     pq.pop();
+//     color[first_vertex] = 1;
+
+//     for (int k = 0; k < g->G_deg[l - 2][first_vertex]; k++)
+//     {
+//         int neighbor = g->G_adj[first_vertex][k];
+//         saturation[neighbor] += 1;
+//         pq.push({neighbor, saturation[neighbor], degree[neighbor]});
+//     }
+
+//     for (int colored_vertices = 1; colored_vertices < g->v_size; colored_vertices++)
+//     {
+//         while (color[pq.top().id] != -1)
+//             pq.pop();
+
+//         int selected_vertex = pq.top().id;
+//         pq.pop();
+
+//         std::vector<bool> used_colors(g->v_size + 1, false);
+//         for (int i = 0; i < g->G_deg[l - 2][selected_vertex]; i++)
+//         {
+//             int neighbor = g->G_adj[selected_vertex][i];
+//             if (color[neighbor] != -1)
+//                 used_colors[color[neighbor]] = true;
+//         }
+
+//         int new_color = 1;
+//         while (used_colors[new_color])
+//             new_color++;
+
+//         color[selected_vertex] = new_color;
+
+//         for (int i = 0; i < g->G_deg[l - 2][selected_vertex]; i++)
+//         {
+//             int neighbor = g->G_adj[selected_vertex][i];
+//             if (color[neighbor] == -1)
+//             {
+//                 saturation[neighbor] += 1;
+//                 pq.push({neighbor, saturation[neighbor], degree[neighbor]});
+//             }
+//         }
+//     }
+
+//     for (int v = 0; v < g->v_size; v++)
+//         g->col[v] = color[v];
+
+//     g->sub_v_size[l - 2] = 0;
+//     for (j = 0; j < g->v_size; j++)
+//         g->sub_v[l - 2][g->sub_v_size[l - 2]++] = j;
+
+//     g->sub_e_size[l - 2] = 0;
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         g->sub_e[l - 2][g->sub_e_size[l - 2]++] = j;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->edges[j].s = (g->col[s] > g->col[t]) ? s : t;
+//         g->edges[j].t = (g->col[s] > g->col[t]) ? t : s;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->DAG_adj[s][g->DAG_deg[l - 2][s]++] = t;
+//     }
+// }
+
+// new version of DSATUR with priority queue based implementation and optimized
+
+// #include <queue>
+// #include <vector>
+// #include <functional>
+// #include <climits> // For INT_MIN
+
+// struct Vertex
+// {
+//     int id;
+//     int saturation; // Saturation degree
+//     int degree;     // Original degree
+// };
+
+// // Custom comparator for the priority queue
+// struct Compare
+// {
+//     bool operator()(const Vertex &v1, const Vertex &v2)
+//     {
+//         if (v1.saturation == v2.saturation)
+//         {
+//             return v1.degree < v2.degree; // Break ties with vertex degree
+//         }
+//         return v1.saturation < v2.saturation; // Max heap based on saturation
+//     }
+// };
+
+// // Modify the branch function
+// void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
+// {
+//     int c, i, j, k, p, e_, u, v, w, s, t, end, dist, l = K;
+//     int *old2new = new int[v_size];
+
+//     g->v_size = 0;                        // Number of vertices in the graph
+//     g->e_size = 0;                        // Number of edges in the graph
+//     g->edges = new Edge_t[C_size[e] + 1]; // Allocate memory for edges
+//     g->new2old.resize(T_size[e]);         // Resize the vector to the required size
+
+//     // Initialize the new graph with vertices and edges
+//     for (i = 0; i < T_size[e]; i++)
+//     {
+//         u = T[e][i];
+//         old2new[u] = g->v_size;
+//         g->new2old[g->v_size++] = u;
+//     }
+
+//     for (i = 0; i < C_size[e]; i++)
+//     {
+//         e_ = C[e][i];
+//         s = edges[e_].s;
+//         t = edges[e_].t;
+//         g->edges[g->e_size].s = old2new[s];
+//         g->edges[g->e_size++].t = old2new[t];
+//     }
+
+//     delete[] old2new; // Clean up the old2new array
+
+//     // Handle the base case for small k
+//     if (l == 3 || l == 4)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     if (g->v_size < l - 2 || g->e_size < (l - 2) * (l - 3) / 2)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     // Initialize for coloring
+//     std::priority_queue<Vertex, std::vector<Vertex>, Compare> pq;
+//     int *saturation = new int[g->v_size](); // Saturation degree
+//     int *degree = new int[g->v_size]();     // Original degree
+//     int *color = new int[g->v_size];        // Colors assigned to vertices
+
+//     for (int v = 0; v < g->v_size; v++)
+//     {
+//         g->col[v] = 0;                  // Reset all colors
+//         g->DAG_deg[l - 2][v] = 0;       // Reset DAG degree
+//         g->G_deg[l - 2][v] = 0;         // Reset general degree
+//         saturation[v] = 0;              // Initialize saturation
+//         degree[v] = g->G_deg[l - 2][v]; // Compute initial degrees
+//         color[v] = -1;                  // No color assigned yet
+
+//         // Insert into priority queue
+//         pq.push({v, saturation[v], degree[v]});
+//     }
+
+//     // Build adjacency list
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->G_adj[s][g->G_deg[l - 2][s]++] = t;
+//         g->G_adj[t][g->G_deg[l - 2][t]++] = s;
+//     }
+
+//     // Color the vertices using DSATUR with the priority queue
+//     while (!pq.empty())
+//     {
+//         // Get the vertex with the highest saturation degree (tie-breaking by degree)
+//         Vertex top = pq.top();
+//         pq.pop();
+
+//         int selected_vertex = top.id;
+
+//         // Find the smallest available color for selected_vertex
+//         bool *used_colors = new bool[g->v_size + 1]();
+//         for (int i = 0; i < g->G_deg[l - 2][selected_vertex]; i++)
+//         {
+//             int neighbor = g->G_adj[selected_vertex][i];
+//             if (color[neighbor] != -1)
+//             {
+//                 used_colors[color[neighbor]] = true;
+//             }
+//         }
+
+//         int new_color = 1;
+//         while (used_colors[new_color])
+//         {
+//             new_color++;
+//         }
+//         color[selected_vertex] = new_color;
+//         g->col[selected_vertex] = new_color;
+
+//         delete[] used_colors; // Clean up the used_colors array
+
+//         // Update the saturation degree of its neighbors
+//         for (int i = 0; i < g->G_deg[l - 2][selected_vertex]; i++)
+//         {
+//             int neighbor = g->G_adj[selected_vertex][i];
+//             if (color[neighbor] == -1)
+//             { // Only consider uncolored neighbors
+//                 saturation[neighbor] += 1;
+
+//                 // Insert updated neighbor into the priority queue
+//                 pq.push({neighbor, saturation[neighbor], degree[neighbor]});
+//             }
+//         }
+//     }
+
+//     // Prepare the subgraph for further processing
+//     g->sub_v_size[l - 2] = 0;
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->sub_v[l - 2][g->sub_v_size[l - 2]++] = j;
+//     }
+
+//     g->sub_e_size[l - 2] = 0;
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         g->sub_e[l - 2][g->sub_e_size[l - 2]++] = j;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->edges[j].s = (g->col[s] > g->col[t]) ? s : t;
+//         g->edges[j].t = (g->col[s] > g->col[t]) ? t : s;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+
+//         g->DAG_adj[s][g->DAG_deg[l - 2][s]++] = t;
+//     }
+
+//     delete[] saturation; // Clean up the saturation array
+//     delete[] degree;     // Clean up the degree array
+//     delete[] color;      // Clean up the color array
+
+//     return;
+// }
+
+// new version of DSATUR with k core decomposition
+
+// void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
+// {
+//     int i, j, k, s, t, u, max_saturation, max_degree;
+//     int l = K; // k-core value
+//     int *old2new = new int[v_size];
+
+//     g->v_size = 0;                        // v_size is the number of vertices in the graph
+//     g->e_size = 0;                        // e_size is the number of edges in the graph
+//     g->edges = new Edge_t[C_size[e] + 1]; // Allocate memory for edges
+//     g->new2old.resize(T_size[e]);         // Resize the vector to the required size
+
+//     // Initialize the new graph with vertices and edges
+//     for (i = 0; i < T_size[e]; i++)
+//     {
+//         u = T[e][i];
+//         old2new[u] = g->v_size;
+//         g->new2old[g->v_size++] = u;
+//     }
+
+//     for (i = 0; i < C_size[e]; i++)
+//     {
+//         int e_ = C[e][i];
+//         s = edges[e_].s;
+//         t = edges[e_].t;
+//         g->edges[g->e_size].s = old2new[s];
+//         g->edges[g->e_size++].t = old2new[t];
+//     }
+
+//     delete[] old2new; // Clean up the old2new array
+
+//     // Handle the base case for small k
+//     if (l == 3 || l == 4)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     if (g->v_size < l - 2 || g->e_size < (l - 2) * (l - 3) / 2)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     // Initialize for coloring
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->col[j] = 0;            // Reset all colors
+//         g->DAG_deg[l - 2][j] = 0; // Reset DAG degree
+//         g->G_deg[l - 2][j] = 0;   // Reset general degree
+//     }
+
+//     // Build adjacency list
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->G_adj[s][g->G_deg[l - 2][s]++] = t;
+//         g->G_adj[t][g->G_deg[l - 2][t]++] = s;
+//     }
+
+//     // K-core decomposition: compute core number for each vertex
+//     int *core_number = new int[g->v_size](); // Array to store k-core number of each vertex
+//     int *degree = new int[g->v_size];        // Array to store the degree of each vertex
+//     for (int v = 0; v < g->v_size; v++)
+//         degree[v] = g->G_deg[l - 2][v];
+
+//     // K-core decomposition
+//     bool *processed = new bool[g->v_size]();
+//     int vertices_left = g->v_size;
+
+//     while (vertices_left > 0)
+//     {
+//         int min_degree_vertex = -1;
+//         int min_degree = g->v_size + 1;
+
+//         // Find vertex with the smallest degree
+//         for (int v = 0; v < g->v_size; v++)
+//         {
+//             if (!processed[v] && degree[v] < min_degree)
+//             {
+//                 min_degree = degree[v];
+//                 min_degree_vertex = v;
+//             }
+//         }
+
+//         // Assign k-core number
+//         core_number[min_degree_vertex] = min_degree;
+//         processed[min_degree_vertex] = true;
+//         vertices_left--;
+
+//         // Decrease the degree of its neighbors
+//         for (int i = 0; i < g->G_deg[l - 2][min_degree_vertex]; i++)
+//         {
+//             int neighbor = g->G_adj[min_degree_vertex][i];
+//             if (!processed[neighbor])
+//                 degree[neighbor]--;
+//         }
+//     }
+
+//     // Sort vertices by k-core in descending order, and by degree within the same core
+//     int *vertices_sorted = new int[g->v_size];
+//     for (int v = 0; v < g->v_size; v++)
+//         vertices_sorted[v] = v;
+
+//     std::sort(vertices_sorted, vertices_sorted + g->v_size, [&](int a, int b)
+//               {
+//                   if (core_number[a] != core_number[b])
+//                       return core_number[a] > core_number[b]; // Higher core number first
+//                   return degree[a] > degree[b];               // Higher degree within the same core
+//               });
+
+//     // DSATUR coloring
+//     int *saturation = new int[g->v_size]();
+//     int *color = new int[g->v_size];
+//     std::fill(color, color + g->v_size, -1);
+
+//     // Color vertices in the sorted order
+//     for (int idx = 0; idx < g->v_size; idx++)
+//     {
+//         int v = vertices_sorted[idx];
+
+//         // Find the smallest available color
+//         bool *used_colors = new bool[g->v_size + 1]();
+//         for (int i = 0; i < g->G_deg[l - 2][v]; i++)
+//         {
+//             int neighbor = g->G_adj[v][i];
+//             if (color[neighbor] != -1)
+//                 used_colors[color[neighbor]] = true;
+//         }
+
+//         int new_color = 1;
+//         while (used_colors[new_color])
+//             new_color++;
+
+//         color[v] = new_color; // Assign color
+
+//         delete[] used_colors; // Clean up
+
+//         // Update saturation of neighbors
+//         for (int i = 0; i < g->G_deg[l - 2][v]; i++)
+//         {
+//             int neighbor = g->G_adj[v][i];
+//             if (color[neighbor] == -1)
+//                 saturation[neighbor]++;
+//         }
+//     }
+
+//     // Transfer the color assignment to the g->col array
+//     for (int v = 0; v < g->v_size; v++)
+//         g->col[v] = color[v];
+
+//     // Prepare the subgraph for further processing
+//     g->sub_v_size[l - 2] = 0;
+//     for (j = 0; j < g->v_size; j++)
+//         g->sub_v[l - 2][g->sub_v_size[l - 2]++] = j;
+
+//     g->sub_e_size[l - 2] = 0;
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         g->sub_e[l - 2][g->sub_e_size[l - 2]++] = j;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->edges[j].s = (g->col[s] > g->col[t]) ? s : t;
+//         g->edges[j].t = (g->col[s] > g->col[t]) ? t : s;
+//         g->DAG_adj[g->edges[j].s][g->DAG_deg[l - 2][g->edges[j].s]++] = g->edges[j].t;
+//     }
+
+//     // Clean up
+//     delete[] saturation;
+//     delete[] core_number;
+//     delete[] degree;
+//     delete[] color;
+//     delete[] vertices_sorted;
+//     delete[] processed;
+
+//     return;
+// }
+
+// new version of DSATUR with optimization
+
+// #include <set>
+// #include <vector>
+// #include <tuple>
+
+// void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
+// {
+//     int i, j, u, v, s, t, l = K;
+//     int *old2new = new int[v_size];
+
+//     // Initialize the new graph's vertices and edges
+//     g->v_size = 0;
+//     g->e_size = 0;
+//     g->edges = new Edge_t[C_size[e] + 1];
+//     g->new2old.resize(T_size[e]);
+
+//     // Map old vertices to new vertices in the new graph g
+//     for (i = 0; i < T_size[e]; i++)
+//     {
+//         u = T[e][i];
+//         old2new[u] = g->v_size;
+//         g->new2old[g->v_size++] = u;
+//     }
+
+//     // Map old edges to new edges in the new graph g
+//     for (i = 0; i < C_size[e]; i++)
+//     {
+//         int e_ = C[e][i];
+//         s = edges[e_].s;
+//         t = edges[e_].t;
+//         g->edges[g->e_size].s = old2new[s];
+//         g->edges[g->e_size++].t = old2new[t];
+//     }
+
+//     delete[] old2new; // Clean up
+
+//     // Handle the base case for small k
+//     if (l == 3 || l == 4)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     if (g->v_size < l - 2 || g->e_size < (l - 2) * (l - 3) / 2)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     // Reset color and degree arrays
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->col[j] = 0;            // Reset all colors
+//         g->DAG_deg[l - 2][j] = 0; // Reset DAG degree
+//         g->G_deg[l - 2][j] = 0;   // Reset general degree
+//     }
+
+//     // Build adjacency list
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->G_adj[s][g->G_deg[l - 2][s]++] = t;
+//         g->G_adj[t][g->G_deg[l - 2][t]++] = s;
+//     }
+
+//     // Implement DSATUR algorithm using a priority queue (std::set)
+//     struct VertexInfo
+//     {
+//         int sat; // Saturation degree
+//         int deg; // Remaining degree
+//         int vertex;
+
+//         bool operator<(const VertexInfo &rhs) const
+//         {
+//             return std::tie(sat, deg, vertex) > std::tie(rhs.sat, rhs.deg, rhs.vertex);
+//         }
+//     };
+
+//     std::set<VertexInfo> pq; // Priority queue to select vertices
+//     std::vector<int> saturation(g->v_size, 0);
+//     std::vector<int> color(g->v_size, -1);
+//     std::vector<std::set<int>> adjColors(g->v_size);
+
+//     // Initialize the priority queue with vertex degrees
+//     for (int v = 0; v < g->v_size; v++)
+//     {
+//         pq.insert({0, g->G_deg[l - 2][v], v});
+//     }
+
+//     while (!pq.empty())
+//     {
+//         // Extract the vertex with the highest saturation degree
+//         VertexInfo current = *pq.begin();
+//         pq.erase(pq.begin());
+//         int u = current.vertex;
+
+//         // Find the smallest available color
+//         std::vector<bool> usedColors(g->v_size + 1, false);
+//         for (int i = 0; i < g->G_deg[l - 2][u]; i++)
+//         {
+//             int neighbor = g->G_adj[u][i];
+
+//             if (color[neighbor] != -1)
+//             {
+//                 usedColors[color[neighbor]] = true;
+//             }
+//         }
+//         int selectedColor = 1;
+//         while (usedColors[selectedColor])
+//         {
+//             selectedColor++;
+//         }
+//         color[u] = selectedColor;
+
+//         // Update saturation degrees of neighbors
+//         for (int i = 0; i < g->G_deg[l - 2][u]; i++)
+//         {
+//             int neighbor = g->G_adj[u][i];
+
+//             if (color[neighbor] == -1)
+//             {
+//                 pq.erase({(int)adjColors[neighbor].size(), g->G_deg[l - 2][neighbor], neighbor});
+//                 adjColors[neighbor].insert(selectedColor);
+//                 saturation[neighbor] = adjColors[neighbor].size();
+//                 pq.insert({saturation[neighbor], g->G_deg[l - 2][neighbor], neighbor});
+//             }
+//         }
+//     }
+
+//     // Store the color assignment
+//     for (int v = 0; v < g->v_size; v++)
+//     {
+//         g->col[v] = color[v];
+//     }
+
+//     // Prepare the subgraph for further processing
+//     g->sub_v_size[l - 2] = 0;
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->sub_v[l - 2][g->sub_v_size[l - 2]++] = j;
+//     }
+
+//     g->sub_e_size[l - 2] = 0;
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         g->sub_e[l - 2][g->sub_e_size[l - 2]++] = j;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->edges[j].s = (g->col[s] > g->col[t]) ? s : t;
+//         g->edges[j].t = (g->col[s] > g->col[t]) ? t : s;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+
+//         g->DAG_adj[s][g->DAG_deg[l - 2][s]++] = t;
+//     }
+// }
+
+// new version of DSATUR with optimization even further
+
+// #include <set>
+// #include <vector>
+// #include <tuple>
+// #include <bitset>
+// #include <omp.h>
+
+// void EBBkC_Graph_t::branch(int e, EBBkC_Graph_t *g)
+// {
+//     int i, j, s, t, l = K;
+//     int *old2new = new int[v_size];
+
+//     // Initialize the new graph's vertices and edges
+//     g->v_size = 0;
+//     g->e_size = 0;
+//     g->edges = new Edge_t[C_size[e] + 1];
+//     g->new2old.resize(T_size[e]);
+
+// // Parallelize vertex mapping using OpenMP
+// #pragma omp parallel for private(i)
+//     for (i = 0; i < T_size[e]; i++)
+//     {
+//         int u = T[e][i];
+//         old2new[u] = i; // Direct mapping
+//         g->new2old[i] = u;
+//     }
+
+// // Parallelize edge mapping
+// #pragma omp parallel for private(i)
+//     for (i = 0; i < C_size[e]; i++)
+//     {
+//         int e_ = C[e][i];
+//         s = edges[e_].s;
+//         t = edges[e_].t;
+//         g->edges[i].s = old2new[s];
+//         g->edges[i].t = old2new[t];
+//     }
+//     g->e_size = C_size[e];
+
+//     delete[] old2new; // Clean up
+
+//     // Handle the base case for small k
+//     if (l == 3 || l == 4)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+//     if (g->v_size < l - 2 || g->e_size < (l - 2) * (l - 3) / 2)
+//     {
+//         g->sub_v_size[l - 2] = g->v_size;
+//         g->sub_e_size[l - 2] = g->e_size;
+//         return;
+//     }
+
+// // Reset color and degree arrays
+// #pragma omp parallel for private(j)
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->col[j] = 0;            // Reset all colors
+//         g->DAG_deg[l - 2][j] = 0; // Reset DAG degree
+//         g->G_deg[l - 2][j] = 0;   // Reset general degree
+//     }
+
+// // Build adjacency list in parallel
+// #pragma omp parallel for private(j, s, t)
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+// #pragma omp critical
+//         {
+//             g->G_adj[s][g->G_deg[l - 2][s]++] = t;
+//             g->G_adj[t][g->G_deg[l - 2][t]++] = s;
+//         }
+//     }
+
+//     // Implement DSATUR algorithm using a priority queue (std::set)
+//     struct VertexInfo
+//     {
+//         int sat; // Saturation degree
+//         int deg; // Remaining degree
+//         int vertex;
+
+//         bool operator<(const VertexInfo &rhs) const
+//         {
+//             return std::tie(sat, deg, vertex) > std::tie(rhs.sat, rhs.deg, rhs.vertex);
+//         }
+//     };
+
+//     std::set<VertexInfo> pq; // Priority queue to select vertices
+//     std::vector<int> saturation(g->v_size, 0);
+//     std::vector<int> color(g->v_size, -1);
+//     std::vector<std::bitset<32>> adjColors(g->v_size); // Use bitset for faster color checks
+
+//     // Initialize the priority queue with vertex degrees
+//     for (int v = 0; v < g->v_size; v++)
+//     {
+//         pq.insert({0, g->G_deg[l - 2][v], v});
+//     }
+
+//     while (!pq.empty())
+//     {
+//         // Extract the vertex with the highest saturation degree
+//         VertexInfo current = *pq.begin();
+//         pq.erase(pq.begin());
+//         int u = current.vertex;
+
+//         // Find the smallest available color using bitset
+//         int selectedColor = 0;
+//         while (adjColors[u].test(selectedColor))
+//         {
+//             ++selectedColor;
+//         }
+//         color[u] = selectedColor;
+
+//         // Update saturation degrees of neighbors
+//         for (int i = 0; i < g->G_deg[l - 2][u]; i++)
+//         {
+//             int neighbor = g->G_adj[u][i];
+
+//             if (color[neighbor] == -1)
+//             {
+//                 pq.erase({(int)adjColors[neighbor].count(), g->G_deg[l - 2][neighbor], neighbor});
+//                 adjColors[neighbor].set(selectedColor);
+//                 saturation[neighbor] = adjColors[neighbor].count();
+//                 pq.insert({saturation[neighbor], g->G_deg[l - 2][neighbor], neighbor});
+//             }
+//         }
+//     }
+
+// // Store the color assignment
+// #pragma omp parallel for private(i)
+//     for (int v = 0; v < g->v_size; v++)
+//     {
+//         g->col[v] = color[v];
+//     }
+
+//     // Prepare the subgraph for further processing
+//     g->sub_v_size[l - 2] = 0;
+// #pragma omp parallel for private(j)
+//     for (j = 0; j < g->v_size; j++)
+//     {
+//         g->sub_v[l - 2][g->sub_v_size[l - 2]++] = j;
+//     }
+
+//     g->sub_e_size[l - 2] = 0;
+// #pragma omp parallel for private(j, s, t)
+//     for (j = 0; j < g->e_size; j++)
+//     {
+//         g->sub_e[l - 2][g->sub_e_size[l - 2]++] = j;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+//         g->edges[j].s = (g->col[s] > g->col[t]) ? s : t;
+//         g->edges[j].t = (g->col[s] > g->col[t]) ? t : s;
+//         s = g->edges[j].s;
+//         t = g->edges[j].t;
+
+// #pragma omp critical
+//         g->DAG_adj[s][g->DAG_deg[l - 2][s]++] = t;
+//     }
+// }
 
 void EBBkC_Graph_t::EBBkC_plus_plus(int l, unsigned long long *cliques)
 {
