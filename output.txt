@@ -13,4 +13,4 @@ Vertex 11 Color 2
 Vertex 12 Color 0
 Vertex 13 Color 2
 Vertex 14 Color 0
-Time taken: 1130 microseconds
+Time taken: 0 microseconds
