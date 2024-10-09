@@ -75,55 +75,43 @@ void dSatur(Graph &g)
     //     Pos: 2  3  0  8  4  1  5  6  13  9  7  10  11  12  14
     //     Deg: 3  3  4  2  3  4  3  3  1  2  3  2  2  2  1
 
-    vector<int> temp(n);
-    temp[0] = vert[0];
-    temp[1] = 0;
-    temp[2] = 6;
-    temp[3] = 8;
-    temp[4] = 7;
-    temp[5] = 1;
-    temp[6] = 3;
-    temp[7] = 7;
-    temp[8] = 13;
+    // {select a node
+    // check available colors
+    // color it with the minimum color
+    // update saturation of neighbors
+    // select next node with max saturation---degree---id}
+    // repeat
 
+    vector<int> satValue(n, 0);
     for (int i = 0; i < n; i++)
+        satValue[i] = g.sat[i] * (md * md) + deg[i];
+
+    priority_queue<pair<int, int>> pq;
+    // map<int, vector<int>> sat;
+    // map<int, vector<int>> takenColor;
+    // vector<vector<int>> availColor(n, vector<int>(n));
+
+    g.col[vert[0]] = 0;
+
+    for (int i = 0; i < g.adj[vert[0]].size(); i++)
     {
-        int v = temp[i];
-        g.col[v] = minColor;
-        for (int j = 0; j < g.adj(v); j++)
+        int neighbor = g.adj[vert[0]][i];
+        satValue[neighbor] = g.sat[neighbor] * (md * md) + deg[neighbor];
+        pq.push({satValue[neighbor], neighbor});
+    }
+
+    while (!pq.empty())
+    {
+        int v = pq.top().second;
+        pq.pop();
+        for (int i = 0; i < g.adj[v].size(); i++)
         {
-            int u = g.adj[v][j];
+            int neighbor = g.adj[v][i];
+            satValue[neighbor] = g.sat[neighbor] * (md * md) + deg[neighbor];
+            pq.push({satValue[neighbor], neighbor});
         }
     }
 }
-
-// for (int i = 0; i < n;i++)
-// {
-//     int v = temp[i];
-//     for (int j = 0; j < g.adj[v].size(); j++)
-//     {
-//         int u = g.adj[v][j];
-//         if (g.col[u] != -1)
-//             continue;
-//         g.sat[u]++;
-//         if (g.sat[u] == 1)
-//             g.col[u] = 0;
-//         else
-//         {
-//             int maxSat = 0;
-//             for (int k = 0; k < g.adj[u].size(); k++)
-//             {
-//                 int w = g.adj[u][k];
-//                 if (g.col[w] != -1)
-//                     continue;
-//                 if (g.sat[w] > maxSat)
-//                     maxSat = g.sat[w];
-//             }
-//             g.col[u] = maxSat;
-//         }
-//         temp.push_back(u);
-//     }
-// }
 
 int main()
 {
