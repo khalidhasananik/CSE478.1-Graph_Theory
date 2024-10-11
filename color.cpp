@@ -8,6 +8,7 @@ public:
     int n;
     vector<vector<int>> adj;
     vector<int> col;
+    vector<vector<int>> takenColors;
     vector<int> sat;
 
     Graph(int n) : n(n)
@@ -15,10 +16,12 @@ public:
         adj.resize(n);
         col.resize(n);
         sat.resize(n);
+        takenColors.resize(n);
         for (int i = 0; i < n; i++)
         {
             col[i] = -1;
             sat[i] = 0;
+            takenColors[i].resize(n);
         }
     }
 
@@ -87,9 +90,6 @@ void dSatur(Graph &g)
         satValue[i] = g.sat[i] * (md * md) + deg[i];
 
     priority_queue<pair<int, int>> pq;
-    // map<int, vector<int>> sat;
-    // map<int, vector<int>> takenColor;
-    // vector<vector<int>> availColor(n, vector<int>(n));
 
     g.col[vert[0]] = 0;
 
