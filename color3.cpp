@@ -10,8 +10,8 @@ void dSatur(Graph &g)
     vector<int> colors(n); // All available colors
     vector<vector<bool>> takenCols(n, vector<bool>(n, false));
     DoublyLinkedList dll;
-    vector<DoublyLinkedList::Node *> nodePointer(n);
     vector<DoublyLinkedList::Node *> nodeLocator(n);
+    vector<DoublyLinkedList::Node *> guideNode(n);
 
     for (int i = 0; i < n; i++)
     {
@@ -69,23 +69,16 @@ void dSatur(Graph &g)
         nodeLocator[i] = dll.getHead();
     }
 
-    dll.deleteNode(nodeLocator[4]);
-
-    for (int i = 0; i < n; i++)
-    {
-        // int x = dll.getHead()->data;
-        // dll.deleteFront();
-        if (nodeLocator[i] == nullptr)
-            cout << "nullptr" << endl;
-        else
-            cout << nodeLocator[i]->data << endl;
-    }
-
-    nodePointer[0] = dll.getHead();
+    guideNode[0] = dll.getHead();
 
     while (dll.getHead() != nullptr)
     {
         int v = dll.getHead()->data;
+        if (guideNode[g.sat[v]]->data == nodeLocator[pos[v]]->data) // If a guide node is colored
+        {
+            guideNode[g.sat[v]] = guideNode[g.sat[v]]->next;
+            maxSat -= 1;
+        }
         dll.deleteFront();
 
         if (g.adj[v].size() == 0)
@@ -99,6 +92,9 @@ void dSatur(Graph &g)
             int neighbor = g.adj[v][i];
             if (g.col[neighbor] == -1)
             {
+                if (guideNode[g.sat[neighbor]]->data == nodeLocator[pos[neighbor]]->data) // If saturation of guide node changes
+                    guideNode[g.sat[neighbor]] = guideNode[g.sat[neighbor]]->prev;        // Move the guide node to the previous node
+
                 g.sat[neighbor] += 1;
 
                 dll.deleteNode(nodeLocator[pos[neighbor]]);
@@ -107,28 +103,13 @@ void dSatur(Graph &g)
                 {
                     maxSat = g.sat[neighbor];
                     dll.insertFront(neighbor);
-                    nodePointer[maxSat] = dll.getHead();
+                    guideNode[maxSat] = dll.getHead();
+                    nodeLocator[pos[neighbor]] = dll.getHead();
                 }
                 else
                 {
-                    dll.insertBefore(nodePointer[g.sat[neighbor]], neighbor);
-
-                    // Potential Solution if the locator itself is removed:
-                    //     int x = g.sat[neighbor];
-                    //     if (nodePointer[g.sat[neighbor]] == nullptr)
-                    //         while (nodePointer[x] == nullptr)
-                    //         {
-                    //             x++;
-                    //             if (x == maxSat)
-                    //             {
-                    //                 DoublyLinkedList::Node *first = dll.getHead();
-                    //                 dll.insertBefore(first, neighbor);
-                    //                 goto here;
-                    //             }
-                    //         }
-                    //     dll.insertAfter(nodePointer[x], neighbor);
-                    // here:
-                    //     dll.deleteNode(nodeLocator[pos[neighbor]]);
+                    dll.insertBefore(guideNode[g.sat[neighbor]], neighbor);
+                    nodeLocator[pos[neighbor]] = guideNode[g.sat[neighbor]]->prev;
                 }
             }
             else

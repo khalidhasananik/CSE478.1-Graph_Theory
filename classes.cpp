@@ -1,5 +1,33 @@
-#include <iostream>
+#include <bits/stdc++.h>
 using namespace std;
+
+class Graph
+{
+public:
+    int n;
+    vector<vector<int>> adj;
+    vector<int> sat;
+    vector<int> col;
+
+    Graph(int n) : n(n)
+    {
+        adj.resize(n);
+        col.resize(n);
+        sat.resize(n);
+
+        for (int i = 0; i < n; i++)
+        {
+            col[i] = -1;
+            sat[i] = 0;
+        }
+    }
+
+    void addEdge(int u, int v)
+    {
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+};
 
 class DoublyLinkedList
 {
@@ -174,16 +202,16 @@ public:
     }
 
     // Traverse the list forward
-    // void traverseForward()
-    // {
-    //     Node *temp = head;
-    //     while (temp != nullptr)
-    //     {
-    //         cout << temp->data << " ";
-    //         temp = temp->next;
-    //     }
-    //     cout << endl;
-    // }
+    void traverseForward()
+    {
+        Node *temp = head;
+        while (temp != nullptr)
+        {
+            cout << temp->data << " ";
+            temp = temp->next;
+        }
+        cout << endl;
+    }
 
     // Traverse the list backward
     // void traverseBackward()
