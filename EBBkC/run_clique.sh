@@ -20,15 +20,20 @@ echo "Compilation successful."
 
 
 # Step 3: Run Serial Listing Procedure for Facebook
-echo "Running serial listing for Facebook dataset..."
-./BBkC e ../../dataset/facebook 20 3
-echo "Serial listing for Facebook dataset completed."
+# echo "Running serial listing for Facebook dataset..."
+# ./BBkC e ../../dataset/facebook 20 3
+# echo "Serial listing for Facebook dataset completed."
 
 
 # Step 4: Run Serial Listing Procedure for Nasasrb
 echo "Running serial listing for Nasasrb dataset..."
-./BBkC e ../../dataset/nasasrb 12 2
+./BBkC e ../../dataset/nasasrb 12 2 
 echo "Serial listing for Nasasrb dataset completed."
+
+# Step 5: Run Parallel Listing Procedure for Nasasrb
+echo "Running parallel listing for Nasasrb dataset..."
+# ./BBkC ep ../../dataset/nasasrb 12 3 16   # list 12-clique in `nasasrb` with early-termination in 3-plex with 16 threads
+./BBkC ep ../../dataset/nasasrb 12 3 16   # list 12-clique in `nasasrb` with early-termination in 3-plex with 16 threads
 
 echo "All tasks completed."
 
