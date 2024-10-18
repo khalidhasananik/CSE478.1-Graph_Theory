@@ -73,28 +73,6 @@ public:
         head = newNode;
     }
 
-    // Insert a node at the end of the list
-    // void insertEnd(int data)
-    // {
-    //     Node *newNode = new Node();
-    //     newNode->data = data;
-    //     newNode->next = nullptr;
-
-    //     if (head == nullptr)
-    //     {
-    //         newNode->prev = nullptr;
-    //         head = newNode;
-    //         return;
-    //     }
-
-    //     Node *temp = head;
-    //     while (temp->next != nullptr)
-    //         temp = temp->next;
-
-    //     temp->next = newNode;
-    //     newNode->prev = temp;
-    // }
-
     // Insert a node after a given node
     void insertAfter(Node *prevNode, int data)
     {
@@ -162,27 +140,6 @@ public:
         delete temp;
     }
 
-    // Delete the last node
-    // void deleteEnd()
-    // {
-    //     if (head == nullptr)
-    //         return;
-
-    //     if (head->next == nullptr)
-    //     {
-    //         delete head;
-    //         head = nullptr;
-    //         return;
-    //     }
-
-    //     Node *temp = head;
-    //     while (temp->next != nullptr)
-    //         temp = temp->next;
-
-    //     temp->prev->next = nullptr;
-    //     delete temp;
-    // }
-
     // Delete a specific node
     void deleteNode(Node *del)
     {
@@ -212,39 +169,6 @@ public:
         }
         cout << endl;
     }
-
-    // Traverse the list backward
-    // void traverseBackward()
-    // {
-    //     Node *temp = head;
-    //     if (temp == nullptr)
-    //         return;
-
-    //     // Go to the last node
-    //     while (temp->next != nullptr)
-    //         temp = temp->next;
-
-    //     // Traverse backward
-    //     while (temp != nullptr)
-    //     {
-    //         cout << temp->data << " ";
-    //         temp = temp->prev;
-    //     }
-    //     cout << endl;
-    // }
-
-    // Search for a node with a specific value
-    // Node *search(int key)
-    // {
-    //     Node *temp = head;
-    //     while (temp != nullptr)
-    //     {
-    //         if (temp->data == key)
-    //             return temp;
-    //         temp = temp->next;
-    //     }
-    //     return nullptr;
-    // }
 
     // Get the head (used for other operations like inserting after or deleting a specific node)
     Node *getHead()
